@@ -1,0 +1,2 @@
+include pyproject.toml setup.py
+recursive-include cpp *.cpp *.h *.hpp

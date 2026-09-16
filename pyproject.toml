@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=68", "wheel", "pybind11>=2.12"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tickpipe"
+version = "0.1.0"
+description = "Market-data ingestion and backtest research harness for quantitative trading research"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "pyarrow>=14.0",
+    "duckdb>=0.10.0",
+    "pydantic>=2.5",
+    "numpy>=1.26",
+    "pandas>=2.1",
+    "httpx>=0.25",
+    "websockets>=12.0",
+    "typer>=0.9",
+    "structlog>=23.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "hypothesis>=6.92",
+    "pybind11>=2.12",
+    "ruff>=0.1",
+    "mypy>=1.7",
+]
+
+[project.scripts]
+tickpipe = "tickpipe.cli.main:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=tickpipe --cov-report=term-missing"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["tickpipe"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["src"]
