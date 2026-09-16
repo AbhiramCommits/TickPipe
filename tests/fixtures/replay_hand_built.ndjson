@@ -1,0 +1,7 @@
+{"type": "trade", "symbol": "BTC-USD", "exchange_ts_ns": 1700000000000000000, "ingest_ts_ns": 1700000000000000100, "price": "42000.5", "size": "0.1", "trade_id": "t-1", "sequence": 1}
+{"type": "trade", "symbol": "BTC-USD", "exchange_ts_ns": 1700000000001000000, "ingest_ts_ns": 1700000000001000100, "price": "42001.0", "size": "0.2", "trade_id": "t-2", "sequence": 2}
+{"type": "trade", "symbol": "BTC-USD", "exchange_ts_ns": 1700000000004000000, "ingest_ts_ns": 1700000000004000100, "price": "42004.0", "size": "0.3", "trade_id": "t-5", "sequence": 5}
+{"type": "trade", "symbol": "BTC-USD", "exchange_ts_ns": 1700000000003000000, "ingest_ts_ns": 1700000000003000100, "price": "42003.0", "size": "0.1", "trade_id": "t-4", "sequence": 4}
+{"type": "trade", "symbol": "BTC-USD", "exchange_ts_ns": 1700000000002000000, "ingest_ts_ns": 1700000000002000100, "price": "42002.0", "size": "0.1", "trade_id": "t-3", "sequence": 3}
+{"type": "trade", "symbol": "BTC-USD", "exchange_ts_ns": 1700000000005000000, "ingest_ts_ns": 1700000000005000100, "price": "42004.0", "size": "0.2", "trade_id": "t-5-dup", "sequence": 5}
+{"type": "trade", "symbol": "BTC-USD", "exchange_ts_ns": 1700000000006000000, "ingest_ts_ns": 1700000000006000100, "price": "42006.0", "size": "0.1", "trade_id": "t-6", "sequence": 6}

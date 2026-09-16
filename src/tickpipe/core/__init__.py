@@ -1,5 +1,5 @@
 """Core domain types shared across tickpipe packages."""
 
-from tickpipe.core.types import BookDelta, Trade
+from tickpipe.core.types import BookDelta, Tick, Trade
 
-__all__ = ["BookDelta", "Trade"]
+__all__ = ["BookDelta", "Tick", "Trade"]

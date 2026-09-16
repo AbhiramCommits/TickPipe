@@ -55,4 +55,7 @@ class BookDelta(BaseModel):
     sequence: int = Field(ge=0, description="Monotonic venue sequence number")
 
 
-__all__ = ["BookDelta", "Side", "Trade"]
+Tick = Trade | BookDelta
+
+
+__all__ = ["BookDelta", "Side", "Tick", "Trade"]
