@@ -38,9 +38,7 @@ def test_tick_record_layout_matches_cpp() -> None:
 
 def test_event_queue_ordering_is_fully_deterministic_across_runs() -> None:
     rng = random.Random(42)
-    events = [
-        (rng.randrange(1_000), rng.randrange(100), rng.randrange(3)) for _ in range(10_000)
-    ]
+    events = [(rng.randrange(1_000), rng.randrange(100), rng.randrange(3)) for _ in range(10_000)]
     reference: list[tuple[int, int, int]] | None = None
     for _ in range(100):
         queue = _replay.EventQueue()
@@ -94,8 +92,7 @@ def test_slippage_matches_hand_computed_fill_prices() -> None:
     # buy 2.0: 0.5 @ tick1 (+11), 1.0 @ tick2 (+12), 0.5 @ tick3 (+11)
     # sell 0.5: takes the tick3 remainder (-11)
     assert [
-        (fill.side, fill.size_ticks, fill.tick_price_ticks, fill.fill_price_ticks)
-        for fill in fills
+        (fill.side, fill.size_ticks, fill.tick_price_ticks, fill.fill_price_ticks) for fill in fills
     ] == [
         (1, 500_000_000, 100 * SCALE, 100 * SCALE + 11),
         (1, 1_000_000_000, 200 * SCALE, 200 * SCALE + 12),
@@ -120,9 +117,7 @@ def test_partial_fills_are_capped_by_tick_size() -> None:
 
 
 def test_latency_gate_blocks_ticks_before_submit_plus_latency() -> None:
-    engine = _replay.ReplayEngine(
-        speed=0.0, tick_scale=SCALE, order_entry_latency_ns=1_500
-    )
+    engine = _replay.ReplayEngine(speed=0.0, tick_scale=SCALE, order_entry_latency_ns=1_500)
     array = make_tick_array(
         exchange_ts_ns=[1_000, 2_000, 3_000],
         price_ticks=[100 * SCALE] * 3,

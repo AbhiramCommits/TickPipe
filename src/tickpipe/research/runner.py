@@ -50,9 +50,7 @@ def dataset_bounds(data_dir: Path, dataset: str) -> tuple[int, int]:
 
 def discover_symbols(data_dir: Path, dataset: str) -> list[str]:
     prefix = "symbol="
-    return sorted(
-        path.name[len(prefix) :] for path in (data_dir / dataset).glob("symbol=*")
-    )
+    return sorted(path.name[len(prefix) :] for path in (data_dir / dataset).glob("symbol=*"))
 
 
 def compute_code_hash() -> str:

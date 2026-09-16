@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 FROM python:3.11-slim AS runtime
 
 RUN useradd --create-home --uid 1000 tickpipe \
-    && mkdir -p /app/data \
+    && mkdir -p /app/data /app/scripts \
     && chown tickpipe:tickpipe /app/data
 
 WORKDIR /app
@@ -25,6 +25,11 @@ WORKDIR /app
 COPY --from=builder /build/dist/*.whl /tmp/wheels/
 RUN pip install --no-cache-dir /tmp/wheels/*.whl \
     && rm -rf /tmp/wheels
+
+COPY experiments /app/experiments
+COPY scripts/quickstart.sh /app/scripts/quickstart.sh
+RUN chmod +x /app/scripts/quickstart.sh \
+    && chown -R tickpipe:tickpipe /app
 
 USER tickpipe
 ENTRYPOINT ["tickpipe"]

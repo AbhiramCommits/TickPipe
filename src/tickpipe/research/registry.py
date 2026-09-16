@@ -7,6 +7,7 @@ params, metrics, and the RNG seed so it can be replayed bit-for-bit.
 
 from __future__ import annotations
 
+import os
 import subprocess
 import uuid
 from dataclasses import dataclass
@@ -43,15 +44,32 @@ class RunComparison:
 
 
 def git_head_commit() -> str:
-    return subprocess.run(
-        ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True
-    ).stdout.strip()
+    override = os.environ.get("TICKPIPE_GIT_COMMIT")
+    if override:
+        return override
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=False
+        )
+    except FileNotFoundError:
+        return "unknown"
+    if result.returncode != 0:
+        return "unknown"
+    return result.stdout.strip()
 
 
 def git_is_dirty() -> bool:
-    result = subprocess.run(
-        ["git", "status", "--porcelain"], capture_output=True, text=True, check=True
-    )
+    override = os.environ.get("TICKPIPE_GIT_DIRTY")
+    if override is not None:
+        return override == "1"
+    try:
+        result = subprocess.run(
+            ["git", "status", "--porcelain"], capture_output=True, text=True, check=False
+        )
+    except FileNotFoundError:
+        return True  # no git metadata available: treat as dirty
+    if result.returncode != 0:
+        return True  # unknown repository state is treated as dirty
     return bool(result.stdout.strip())
 
 
@@ -147,9 +165,7 @@ class ExperimentRegistry:
         if status is not None:
             statement = statement.where(ExperimentRun.status == status)
         if dataset_fingerprint is not None:
-            statement = statement.where(
-                ExperimentRun.dataset_fingerprint == dataset_fingerprint
-            )
+            statement = statement.where(ExperimentRun.dataset_fingerprint == dataset_fingerprint)
         statement = statement.order_by(ExperimentRun.created_at.desc()).limit(limit)
         with self.session_factory() as session:
             rows = session.scalars(statement).all()

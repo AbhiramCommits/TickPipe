@@ -61,9 +61,7 @@ class PointInTimeView:
             raise LookaheadError(
                 f"as_of_ns {as_of_ns} exceeds this view's as_of_ns {self._as_of_ns}"
             )
-        effective_as_of = (
-            self._as_of_ns if as_of_ns is None else min(self._as_of_ns, as_of_ns)
-        )
+        effective_as_of = self._as_of_ns if as_of_ns is None else min(self._as_of_ns, as_of_ns)
         effective_end = self._clamped_end_ns(end_ns, effective_as_of)
         return self._store.scan(
             symbols=symbols,

@@ -45,9 +45,7 @@ class TrainResult:
         return {**self.train_metrics, **self.validation_metrics, **self.backtest_metrics}
 
 
-def walk_forward_splits(
-    n_rows: int, n_splits: int
-) -> Iterator[tuple[np.ndarray, np.ndarray]]:
+def walk_forward_splits(n_rows: int, n_splits: int) -> Iterator[tuple[np.ndarray, np.ndarray]]:
     """Expanding-window, strictly time-ordered train/validation splits.
 
     Row order is assumed sorted by time. For each fold the training set is
@@ -91,9 +89,7 @@ def bar_backtest_metrics(
     span_years = (bar_end_ns[-1] - bar_end_ns[0]) / YEAR_NS
     events_per_year = len(strategy_returns) / span_years if span_years > 0 else 0.0
     std = float(strategy_returns.std(ddof=1))
-    sharpe = (
-        float(strategy_returns.mean() / std * np.sqrt(events_per_year)) if std > 0 else 0.0
-    )
+    sharpe = float(strategy_returns.mean() / std * np.sqrt(events_per_year)) if std > 0 else 0.0
     peak = np.maximum.accumulate(equity)
     max_drawdown = float(((peak - equity) / peak).max())
     changes = np.diff(positions, prepend=positions[:1])

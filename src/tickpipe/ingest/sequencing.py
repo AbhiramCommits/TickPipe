@@ -118,8 +118,7 @@ class SequenceTracker:
         self._buffer.insert(insert_at, msg)
 
         reordered = (
-            self._max_exchange_ts_ns is not None
-            and msg.exchange_ts_ns < self._max_exchange_ts_ns
+            self._max_exchange_ts_ns is not None and msg.exchange_ts_ns < self._max_exchange_ts_ns
         )
         if reordered:
             self.reordered_count += 1

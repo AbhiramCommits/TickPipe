@@ -66,6 +66,27 @@ def test_metrics_server_serves_prometheus_endpoint() -> None:
     asyncio.run(scenario())
 
 
+def test_metrics_server_healthcheck_endpoint() -> None:
+    async def scenario() -> None:
+        metrics = IngestMetrics()
+        metrics.incr("messages_received", 12)
+        metrics.incr("messages_dropped", 1)
+        server = MetricsServer(metrics, host="127.0.0.1", port=0)
+        await server.start()
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(f"http://127.0.0.1:{server.bound_port}/healthz")
+                assert response.status_code == 200
+                payload = response.json()
+                assert payload["status"] == "ok"
+                assert payload["messages_received"] == 12
+                assert payload["messages_dropped"] == 1
+        finally:
+            await server.stop()
+
+    asyncio.run(scenario())
+
+
 def test_periodic_logger_emits_snapshots() -> None:
     async def scenario() -> None:
         metrics = IngestMetrics()

@@ -91,9 +91,7 @@ class Backtest:
         table = self._load_table()
         tick_array, symbol_names, trade_id_names = _table_to_tick_array(table)
         if TICK_RECORD_DTYPE.itemsize != _replay.TICK_RECORD_ITEMSIZE:
-            raise RuntimeError(
-                "numpy TICK_RECORD_DTYPE and C++ TickRecord layouts are out of sync"
-            )
+            raise RuntimeError("numpy TICK_RECORD_DTYPE and C++ TickRecord layouts are out of sync")
 
         engine = _replay.ReplayEngine(
             speed=self.config.speed,

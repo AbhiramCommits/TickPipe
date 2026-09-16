@@ -71,14 +71,10 @@ def make_handler(rows_by_date: dict[str, list[dict]], request_counter: dict[str,
     return handler
 
 
-async def run_backfill(
-    tmp_path: Path, page_limit: int = 100
-) -> tuple:
+async def run_backfill(tmp_path: Path, page_limit: int = 100) -> tuple:
     counter = {"requests": 0}
     transport = httpx.MockTransport(make_handler(ROWS_BY_DATE, counter))
-    async with httpx.AsyncClient(
-        transport=transport, base_url="https://example.invalid"
-    ) as client:
+    async with httpx.AsyncClient(transport=transport, base_url="https://example.invalid") as client:
         first = await backfill_trades(
             "BTC-USD", "2021-01-01", "2021-01-02", tmp_path, client=client, page_limit=page_limit
         )
@@ -109,9 +105,7 @@ def test_backfill_writes_then_skips_on_identical_hash(tmp_path: Path) -> None:
     assert table.num_rows == 5
     prices = sorted(table.column("price_ticks").to_pylist())
     expected_prices = sorted(
-        decimal_to_ticks(Decimal(row["price"]))
-        for rows in ROWS_BY_DATE.values()
-        for row in rows
+        decimal_to_ticks(Decimal(row["price"])) for rows in ROWS_BY_DATE.values() for row in rows
     )
     assert prices == expected_prices
 

@@ -102,9 +102,7 @@ class Portfolio:
         span_years = (self._equity_marks[-1][0] - self._equity_marks[0][0]) / YEAR_NS
         events_per_year = len(returns) / span_years if span_years > 0 else 0.0
         std = float(returns.std(ddof=1))
-        sharpe = (
-            float(returns.mean() / std * np.sqrt(events_per_year)) if std > 0 else 0.0
-        )
+        sharpe = float(returns.mean() / std * np.sqrt(events_per_year)) if std > 0 else 0.0
         peak = np.maximum.accumulate(equities)
         drawdown = (peak - equities) / np.where(peak != 0, peak, 1.0)
         max_drawdown = float(drawdown.max())

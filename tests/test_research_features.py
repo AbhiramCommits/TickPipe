@@ -118,9 +118,7 @@ def test_realized_vol_hand_computed(tmp_path: Path) -> None:
 
 
 def test_trade_count_and_windowed_resolution(tmp_path: Path) -> None:
-    view = make_view(
-        tmp_path, [make_trade(Decimal("100"), BASE_NS + i) for i in range(5)]
-    )
+    view = make_view(tmp_path, [make_trade(Decimal("100"), BASE_NS + i) for i in range(5)])
     context = FeatureContext(view, "BTC-USD", BASE_NS + 4, lookback_ns=60 * SCALE)
     assert FEATURE_REGISTRY["trade_count"].compute(context) == 5.0
     windowed = resolve_feature("trade_count", {"window_s": 120})

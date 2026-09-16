@@ -17,11 +17,12 @@ the ``ingest.run_start`` structured log event.
 
 Shutdown
 --------
-On ``SIGINT`` the pipeline stops reading the source, flushes the sequencing
-reorder buffer, drains the queue through the writer, and closes the writer,
-so buffered messages are never lost. A ``SIGINT`` handler is only installed
-when the running event loop is on the main thread and supports signal
-handlers.
+On ``SIGINT`` or ``SIGTERM`` the pipeline stops reading the source, flushes
+the sequencing reorder buffer, drains the queue through the writer, and
+closes the writer, so buffered messages are never lost. Signal handlers are
+only installed when the running event loop is on the main thread and
+supports signal handlers. Every run gets a fresh ``run_id`` (UUID) that is
+bound to all structured log events it emits.
 """
 
 from __future__ import annotations
@@ -29,6 +30,7 @@ from __future__ import annotations
 import asyncio
 import signal
 import time
+import uuid
 from collections.abc import Sequence
 from enum import StrEnum
 from typing import Final, Protocol
@@ -92,6 +94,7 @@ class NullBatchWriter:
 class RunMetadata(BaseModel):
     """Record of one pipeline run, including the applied backpressure policy."""
 
+    run_id: uuid.UUID
     policy: BackpressurePolicy
     queue_maxsize: int
     batch_size: int
@@ -144,6 +147,7 @@ class IngestPipeline:
         self._symbols: set[str] = set()
         self._stop = asyncio.Event()
         self._started_at_ns = 0
+        self.run_id = uuid.uuid4()
         self._logger = logger.bind(policy=policy.value, queue_maxsize=queue_maxsize)
         self.reader_finished = asyncio.Event()
 
@@ -152,17 +156,20 @@ class IngestPipeline:
         return self.metrics.counter(COUNTER_MESSAGES_DROPPED)
 
     async def run(self) -> RunMetadata:
-        """Run until the source is exhausted or SIGINT is received; returns metadata."""
+        """Run until the source is exhausted or SIGINT/SIGTERM is received."""
         self._started_at_ns = time.time_ns()
         self._stop = asyncio.Event()
         self.reader_finished.clear()
         self._symbols = set()
         self._sequencer = Sequencer(self.reorder_window_ns)
+        self.run_id = uuid.uuid4()
+        self._logger = self._logger.bind(run_id=str(self.run_id))
         self._log_run_start()
         loop = asyncio.get_running_loop()
         signal_added = False
         try:
             loop.add_signal_handler(signal.SIGINT, self._stop.set)
+            loop.add_signal_handler(signal.SIGTERM, self._stop.set)
             signal_added = True
         except (NotImplementedError, RuntimeError):
             pass
@@ -170,15 +177,13 @@ class IngestPipeline:
         reader_task = asyncio.create_task(self._read_loop(), name="tickpipe-ingest-reader")
         metrics_log_task = asyncio.create_task(
             PeriodicMetricsLogger(
-                self.metrics, interval_s=self._metrics_log_interval_s
+                self.metrics, interval_s=self._metrics_log_interval_s, logger_=self._logger
             ).run(),
             name="tickpipe-ingest-metrics-log",
         )
         try:
             await self._writer.open()
-            writer_task = asyncio.create_task(
-                self._write_loop(), name="tickpipe-ingest-writer"
-            )
+            writer_task = asyncio.create_task(self._write_loop(), name="tickpipe-ingest-writer")
             stop_task = asyncio.create_task(self._stop.wait(), name="tickpipe-ingest-stop")
             try:
                 done, _pending = await asyncio.wait(
@@ -202,6 +207,7 @@ class IngestPipeline:
             await asyncio.gather(metrics_log_task, return_exceptions=True)
             if signal_added:
                 loop.remove_signal_handler(signal.SIGINT)
+                loop.remove_signal_handler(signal.SIGTERM)
             try:
                 await self._writer.close()
             except Exception as exc:
@@ -318,6 +324,7 @@ class IngestPipeline:
         latency_p50 = snapshot["latency_p50_ns"]
         latency_p99 = snapshot["latency_p99_ns"]
         return RunMetadata(
+            run_id=self.run_id,
             policy=self.policy,
             queue_maxsize=self.queue_maxsize,
             batch_size=self.batch_size,

@@ -10,8 +10,8 @@ It is off by default so builds stay reproducible across machines.
 
 import os
 
-from setuptools import find_packages, setup
 from pybind11.setup_helpers import Pybind11Extension, build_ext
+from setuptools import find_packages, setup
 
 
 def _native_flags() -> list[str]:

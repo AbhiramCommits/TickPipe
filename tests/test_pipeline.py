@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import os
 import signal
+import uuid
 from collections.abc import AsyncIterator, Callable, Sequence
 from pathlib import Path
 
@@ -148,9 +149,7 @@ def test_sigint_shuts_down_cleanly_without_losing_buffered_messages() -> None:
             metrics_log_interval_s=60.0,
         )
         run_task = asyncio.create_task(pipeline.run())
-        await wait_for_condition(
-            lambda: pipeline.metrics.counter("messages_received") == 7
-        )
+        await wait_for_condition(lambda: pipeline.metrics.counter("messages_received") == 7)
         os.kill(os.getpid(), signal.SIGINT)
         metadata = await asyncio.wait_for(run_task, timeout=5)
         return metadata, writer
@@ -161,3 +160,44 @@ def test_sigint_shuts_down_cleanly_without_losing_buffered_messages() -> None:
     assert metadata.messages_dropped == 0
     assert written_trade_ids(writer) == EXPECTED_TS_ORDER
     assert writer.closed
+
+
+def test_sigterm_shuts_down_cleanly_without_losing_buffered_messages() -> None:
+    async def scenario() -> tuple[RunMetadata, CollectingWriter]:
+        writer = CollectingWriter()
+        pipeline = IngestPipeline(
+            HangingReplaySource(FIXTURE),
+            writer,
+            queue_maxsize=16,
+            policy=BackpressurePolicy.BLOCK,
+            batch_size=100,
+            batch_timeout_s=0.05,
+            metrics_log_interval_s=60.0,
+        )
+        run_task = asyncio.create_task(pipeline.run())
+        await wait_for_condition(lambda: pipeline.metrics.counter("messages_received") == 7)
+        os.kill(os.getpid(), signal.SIGTERM)
+        metadata = await asyncio.wait_for(run_task, timeout=5)
+        return metadata, writer
+
+    metadata, writer = asyncio.run(scenario())
+    assert metadata.messages_received == 7
+    assert metadata.messages_written == 7
+    assert metadata.messages_dropped == 0
+    assert written_trade_ids(writer) == EXPECTED_TS_ORDER
+    assert writer.closed
+
+
+def test_run_metadata_carries_a_run_id() -> None:
+    async def scenario() -> RunMetadata:
+        writer = CollectingWriter()
+        pipeline = IngestPipeline(
+            ReplayFileSource(FIXTURE),
+            writer,
+            reorder_window_ns=0,
+            metrics_log_interval_s=60.0,
+        )
+        return await pipeline.run()
+
+    metadata = asyncio.run(scenario())
+    assert isinstance(metadata.run_id, uuid.UUID)

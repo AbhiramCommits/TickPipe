@@ -43,7 +43,7 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=tickpipe --cov-report=term-missing"
+addopts = "--cov=tickpipe --cov-report=term-missing --cov-fail-under=85"
 
 [tool.ruff]
 target-version = "py311"

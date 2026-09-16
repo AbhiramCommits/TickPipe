@@ -41,9 +41,7 @@ book_delta_strategy = st.builds(
     sequence=st.integers(min_value=0, max_value=2**40),
 )
 
-ticks_strategy = st.lists(
-    st.one_of(trade_strategy, book_delta_strategy), min_size=1, max_size=40
-)
+ticks_strategy = st.lists(st.one_of(trade_strategy, book_delta_strategy), min_size=1, max_size=40)
 
 as_of_strategy = st.integers(min_value=BASE_NS, max_value=BASE_NS + SPAN_NS)
 

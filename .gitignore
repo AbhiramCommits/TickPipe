@@ -13,6 +13,7 @@ venv/
 coverage.xml
 htmlcov/
 data/
+benchmarks/results.json
 *.so
 *.dSYM/
 .DS_Store

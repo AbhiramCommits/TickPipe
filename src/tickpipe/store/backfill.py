@@ -96,9 +96,7 @@ async def _backfill_days(
         if not ticks:
             continue
         content = partition_content_hash(ticks)
-        partition_dir = (
-            Path(data_dir) / dataset / f"symbol={symbol}" / f"date={day.isoformat()}"
-        )
+        partition_dir = Path(data_dir) / dataset / f"symbol={symbol}" / f"date={day.isoformat()}"
         existing = read_manifest(partition_dir)
         if existing is not None and existing.content_sha256 == content:
             logger.info(

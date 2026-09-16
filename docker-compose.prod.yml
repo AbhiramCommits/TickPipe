@@ -16,14 +16,28 @@ services:
 
   tickpipe:
     build: .
+    restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       TICKPIPE_EXPERIMENT_REGISTRY_URL: postgresql+psycopg://tickpipe:tickpipe@postgres:5432/experiments
+    command:
+      [
+        "ingest",
+        "--symbol",
+        "BTC-USD",
+        "--data-dir",
+        "/app/data",
+        "--metrics-port",
+        "9090",
+        "--policy",
+        "block",
+      ]
+    ports:
+      - "127.0.0.1:9090:9090"
     volumes:
       - ./data:/app/data
-    entrypoint: ["/bin/sh", "/app/scripts/quickstart.sh"]
 
 volumes:
   pgdata:

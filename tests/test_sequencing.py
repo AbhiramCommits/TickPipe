@@ -18,9 +18,7 @@ FIXTURE = Path(__file__).parent / "fixtures" / "replay_hand_built.ndjson"
 DEFAULT_WINDOW_NS = 50_000_000
 
 
-def make_trade(
-    trade_id: str, sequence: int, exchange_ts_ns: int, symbol: str = "BTC-USD"
-) -> Trade:
+def make_trade(trade_id: str, sequence: int, exchange_ts_ns: int, symbol: str = "BTC-USD") -> Trade:
     return Trade(
         symbol=symbol,
         exchange_ts_ns=exchange_ts_ns,

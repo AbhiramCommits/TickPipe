@@ -123,8 +123,6 @@ def test_perfect_signals_earn_positive_return() -> None:
 def test_train_requires_mid_price(tmp_path: Path) -> None:
     import pyarrow as pa
 
-    table = pa.table(
-        {"symbol": ["A"], "bar_end_ns": [1], "other": [0.5]}
-    )
+    table = pa.table({"symbol": ["A"], "bar_end_ns": [1], "other": [0.5]})
     with pytest.raises(ValueError, match="mid_price"):
         train_evaluate(table, TrainConfig(model="ridge"))

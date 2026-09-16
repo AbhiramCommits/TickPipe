@@ -11,6 +11,7 @@ runner = CliRunner()
 
 SUBCOMMANDS = [
     "ingest",
+    "sample-data",
     "backfill",
     "query",
     "backtest",

@@ -4,13 +4,11 @@ from typing import Any
 
 TICK_RECORD_ITEMSIZE: int
 
-
 class EventQueue:
     def push(self, timestamp_ns: int, sequence: int, rank: int) -> None: ...
     def pop(self) -> tuple[int, int, int]: ...
     def empty(self) -> bool: ...
     def __len__(self) -> int: ...
-
 
 class Fill:
     order_id: int
@@ -21,7 +19,6 @@ class Fill:
     fill_price_ticks: int
     slippage_ticks: int
     trade_ts_ns: int
-
 
 class ReplayEngine:
     def __init__(

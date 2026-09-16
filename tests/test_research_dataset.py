@@ -42,9 +42,7 @@ def write_trades(data_dir: Path, count: int = 60, seed: int = 7) -> tuple[int, i
     return BASE_NS, BASE_NS + (count - 1) * 5 * SCALE
 
 
-def make_dataset(
-    data_dir: Path, start_ns: int, end_ns: int
-) -> FeatureDataset:
+def make_dataset(data_dir: Path, start_ns: int, end_ns: int) -> FeatureDataset:
     view = PointInTimeView(TickStore(data_dir, "trades"), as_of_ns=end_ns)
     spec = DatasetSpec(
         dataset="trades",

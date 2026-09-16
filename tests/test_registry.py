@@ -110,6 +110,31 @@ def test_get_run_missing_returns_none(database_url: str) -> None:
     assert registry.get_run(uuid.uuid4()) is None
 
 
+def test_git_state_environment_overrides(database_url: str, monkeypatch) -> None:
+    """Container runs without a git checkout can pin commit/dirty via env."""
+    monkeypatch.setenv("TICKPIPE_GIT_COMMIT", "feedface")
+    monkeypatch.setenv("TICKPIPE_GIT_DIRTY", "0")
+    registry = make_registry(database_url)
+    run_id = registry.register_run(code_hash=CODE_HASH, seed=3)
+    record = registry.get_run(run_id)
+    assert record is not None
+    assert record.git_commit == "feedface"
+    assert record.git_dirty is False
+
+
+def test_git_binary_missing_is_unknown_and_dirty(database_url: str, monkeypatch) -> None:
+    """Without git on PATH, commit is unknown and state is conservatively dirty."""
+    monkeypatch.setenv("PATH", "/nonexistent")
+    monkeypatch.delenv("TICKPIPE_GIT_COMMIT", raising=False)
+    monkeypatch.delenv("TICKPIPE_GIT_DIRTY", raising=False)
+    registry = make_registry(database_url)
+    run_id = registry.register_run(code_hash=CODE_HASH, seed=4, allow_dirty=True)
+    record = registry.get_run(run_id)
+    assert record is not None
+    assert record.git_commit == "unknown"
+    assert record.git_dirty is True
+
+
 def test_alembic_migration_creates_experiments_table(tmp_path) -> None:
     database_path = tmp_path / "migrated.db"
     config = Config("alembic.ini")

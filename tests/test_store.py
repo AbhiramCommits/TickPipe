@@ -144,9 +144,7 @@ def test_partition_pruning_reads_strictly_fewer_files_than_full_scan(tmp_path: P
     assert pruned_files == 3
     assert pruned_files < full_files
 
-    table = store.scan(
-        symbols=["AAA-BBB"], start_ns=one_day_ns, end_ns=one_day_ns + 24 * HOUR_NS
-    )
+    table = store.scan(symbols=["AAA-BBB"], start_ns=one_day_ns, end_ns=one_day_ns + 24 * HOUR_NS)
     assert table.num_rows == 25
     symbols = set(table.column("symbol").to_pylist())
     assert symbols == {"AAA-BBB"}

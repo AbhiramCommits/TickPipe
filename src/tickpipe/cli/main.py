@@ -6,12 +6,14 @@ import asyncio
 import io
 import json
 import sys
+from collections.abc import Sequence
 from pathlib import Path
-from typing import TextIO, cast
+from typing import TYPE_CHECKING, TextIO, cast
 
 import structlog
 import typer
 
+from tickpipe.core.types import Tick
 from tickpipe.research.registry import DirtyWorkingTreeError
 from tickpipe.research.runner import (
     replay_run as replay_experiment_run,
@@ -20,6 +22,28 @@ from tickpipe.research.runner import (
     run_experiment as run_research_experiment,
 )
 from tickpipe.store.backfill import backfill_trades
+from tickpipe.store.writer import PartitionedWriter
+
+if TYPE_CHECKING:
+    from tickpipe.ingest.metrics import MetricsServer
+    from tickpipe.ingest.pipeline import IngestPipeline
+
+
+class _AsyncPartitionedWriter:
+    """Async BatchWriter adapter over the synchronous PartitionedWriter."""
+
+    def __init__(self, writer: PartitionedWriter) -> None:
+        self._writer = writer
+
+    async def open(self) -> None:
+        return None
+
+    async def write(self, batch: Sequence[Tick]) -> None:
+        self._writer.write_batch(batch)
+
+    async def close(self) -> None:
+        self._writer.flush()
+
 
 app = typer.Typer(
     name="tickpipe",
@@ -38,18 +62,92 @@ class _LiveStderr(io.TextIOBase):
         sys.stderr.flush()
 
 
-@app.callback()
-def main() -> None:
-    """Route structured logs to stderr so stdout stays machine-parseable."""
+def _configure_json_logging() -> None:
+    """Structured JSON logs on stderr, with run_id correlation from the pipeline."""
     structlog.configure(
-        logger_factory=structlog.PrintLoggerFactory(file=cast(TextIO, _LiveStderr()))
+        processors=[
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.processors.add_log_level,
+            structlog.processors.JSONRenderer(),
+        ],
+        logger_factory=structlog.PrintLoggerFactory(file=cast(TextIO, _LiveStderr())),
     )
 
 
+@app.callback()
+def main() -> None:
+    """Route structured logs to stderr so stdout stays machine-parseable."""
+    factory = structlog.PrintLoggerFactory(file=cast(TextIO, _LiveStderr()))
+    structlog.configure(logger_factory=factory)
+
+
 @app.command()
-def ingest() -> None:
-    """Ingest market data from live exchange feeds. (stub)"""
-    typer.echo("ingest: not implemented")
+def ingest(
+    symbol: list[str] = typer.Option(..., "--symbol", help="Product symbol; repeatable"),
+    data_dir: Path = typer.Option(Path("data"), "--data-dir", help="Root data directory"),
+    dataset: str = typer.Option("trades", "--dataset", help="Dataset name"),
+    metrics_port: int = typer.Option(9090, "--metrics-port", help="Metrics/health port"),
+    policy: str = typer.Option("block", "--policy", help="Queue-full policy: block | drop-oldest"),
+    queue_maxsize: int = typer.Option(1024, "--queue-maxsize", help="Bounded queue size"),
+    batch_size: int = typer.Option(512, "--batch-size", help="Writer batch size"),
+) -> None:
+    """Ingest live market data into the Parquet store (SIGINT/SIGTERM stop cleanly)."""
+    from tickpipe.ingest.metrics import IngestMetrics, MetricsServer
+    from tickpipe.ingest.pipeline import BackpressurePolicy, IngestPipeline
+    from tickpipe.ingest.sources import CoinbaseWebSocketSource
+
+    _configure_json_logging()
+    try:
+        backpressure = BackpressurePolicy(policy)
+    except ValueError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+    source = CoinbaseWebSocketSource(symbol)
+    writer = _AsyncPartitionedWriter(PartitionedWriter(data_dir, dataset))
+    metrics = IngestMetrics()
+    pipeline = IngestPipeline(
+        source,
+        writer,
+        policy=backpressure,
+        queue_maxsize=queue_maxsize,
+        batch_size=batch_size,
+        metrics=metrics,
+    )
+    server = MetricsServer(metrics, host="0.0.0.0", port=metrics_port)
+    asyncio.run(_serve_and_ingest(pipeline, server))
+
+
+async def _serve_and_ingest(pipeline: IngestPipeline, server: MetricsServer) -> None:
+    await server.start()
+    try:
+        metadata = await pipeline.run()
+        typer.echo(
+            json.dumps(
+                {
+                    "run_id": str(metadata.run_id),
+                    "messages_received": metadata.messages_received,
+                    "messages_written": metadata.messages_written,
+                    "messages_dropped": metadata.messages_dropped,
+                },
+                sort_keys=True,
+            )
+        )
+    finally:
+        await server.stop()
+
+
+@app.command()
+def sample_data(
+    data_dir: Path = typer.Option(Path("data"), "--data-dir", help="Root data directory"),
+    count: int = typer.Option(500, "--count", help="Number of trades to generate"),
+    seed: int = typer.Option(7, "--seed", help="RNG seed (deterministic)"),
+    force: bool = typer.Option(False, "--force", help="Regenerate even if data already exists"),
+) -> None:
+    """Generate the bundled deterministic sample dataset."""
+    from tickpipe.sample_data import generate_sample_trades
+
+    written = generate_sample_trades(data_dir, count=count, seed=seed, force=force)
+    typer.echo(f"sample data ready: {written} trades")
 
 
 @app.command()
@@ -132,9 +230,7 @@ def replay_run(
     ),
 ) -> None:
     """Replay a registered run and verify bit-for-bit reproducibility."""
-    result = replay_experiment_run(
-        run_id, data_dir=data_dir, database_url=database_url
-    )
+    result = replay_experiment_run(run_id, data_dir=data_dir, database_url=database_url)
     typer.echo(f"run_id={result.run_id}")
     typer.echo(f"recorded_fingerprint={result.recorded_fingerprint}")
     typer.echo(f"recreated_fingerprint={result.recreated_fingerprint}")

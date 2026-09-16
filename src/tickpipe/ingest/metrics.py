@@ -9,6 +9,7 @@ logged once per second through structlog by :class:`PeriodicMetricsLogger`.
 from __future__ import annotations
 
 import asyncio
+import json
 from collections import deque
 from typing import Final
 
@@ -174,7 +175,7 @@ class PeriodicMetricsLogger:
 
 
 class MetricsServer:
-    """Minimal HTTP server exposing :class:`IngestMetrics` at ``/metrics``."""
+    """Minimal HTTP server exposing metrics at ``/metrics`` and health at ``/healthz``."""
 
     def __init__(
         self,
@@ -218,6 +219,19 @@ class MetricsServer:
                 response = (
                     b"HTTP/1.1 200 OK\r\n"
                     b"Content-Type: text/plain; version=0.0.4\r\n"
+                    b"Content-Length: " + str(len(body)).encode() + b"\r\n"
+                    b"\r\n" + body
+                )
+            elif parts[1] == "/healthz":
+                payload = {
+                    "status": "ok",
+                    "messages_received": self.metrics.counter(COUNTER_MESSAGES_RECEIVED),
+                    "messages_dropped": self.metrics.counter(COUNTER_MESSAGES_DROPPED),
+                }
+                body = json.dumps(payload, sort_keys=True).encode()
+                response = (
+                    b"HTTP/1.1 200 OK\r\n"
+                    b"Content-Type: application/json\r\n"
                     b"Content-Length: " + str(len(body)).encode() + b"\r\n"
                     b"\r\n" + body
                 )
