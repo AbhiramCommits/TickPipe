@@ -15,6 +15,7 @@ SUBCOMMANDS = [
     "query",
     "backtest",
     "run-experiment",
+    "replay-run",
 ]
 
 

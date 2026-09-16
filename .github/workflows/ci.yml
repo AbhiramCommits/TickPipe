@@ -11,6 +11,20 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.11"]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: tickpipe
+          POSTGRES_PASSWORD: tickpipe
+          POSTGRES_DB: experiments
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tickpipe"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
 
@@ -33,3 +47,5 @@ jobs:
 
       - name: Pytest with coverage
         run: pytest --cov=tickpipe --cov-report=term-missing tests
+        env:
+          TICKPIPE_TEST_DATABASE_URL: postgresql+psycopg://tickpipe:tickpipe@localhost:5432/experiments

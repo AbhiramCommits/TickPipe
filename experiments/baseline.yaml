@@ -1,0 +1,17 @@
+dataset: trades
+symbols:
+  - BTC-USD
+bar_interval_s: 60
+features:
+  - name: mid_price
+  - name: realized_vol
+    window_s: 120
+  - name: trade_count
+    window_s: 60
+  - name: order_flow_imbalance
+    window_s: 120
+train:
+  model: ridge
+  horizon_bars: 1
+  n_splits: 4
+  seed: 42
