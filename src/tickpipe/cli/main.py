@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
+from pathlib import Path
+
 import typer
+
+from tickpipe.store.backfill import backfill_trades
 
 app = typer.Typer(
     name="tickpipe",
@@ -18,9 +23,36 @@ def ingest() -> None:
 
 
 @app.command()
-def backfill() -> None:
-    """Backfill historical market data from an exchange archive. (stub)"""
-    typer.echo("backfill: not implemented")
+def backfill(
+    symbol: str = typer.Option(..., "--symbol", help="Product symbol, e.g. BTC-USD"),
+    start_date: str = typer.Option(
+        ..., "--start-date", help="First day to backfill, YYYY-MM-DD (inclusive)"
+    ),
+    end_date: str = typer.Option(
+        ..., "--end-date", help="Last day to backfill, YYYY-MM-DD (inclusive)"
+    ),
+    data_dir: Path = typer.Option(Path("data"), "--data-dir", help="Root data directory"),
+    dataset: str = typer.Option("trades", "--dataset", help="Dataset name"),
+    base_url: str = typer.Option(
+        "https://api.exchange.coinbase.com", "--base-url", help="Public REST base URL"
+    ),
+) -> None:
+    """Backfill historical trades from a public REST endpoint."""
+    summary = asyncio.run(
+        backfill_trades(
+            symbol=symbol,
+            start_date=start_date,
+            end_date=end_date,
+            data_dir=data_dir,
+            dataset=dataset,
+            base_url=base_url,
+        )
+    )
+    typer.echo(
+        f"backfilled {summary.rows} rows: "
+        f"{summary.written_partitions} partitions written, "
+        f"{summary.skipped_partitions} skipped"
+    )
 
 
 @app.command()
