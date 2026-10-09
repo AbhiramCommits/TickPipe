@@ -91,7 +91,7 @@ def bar_backtest_metrics(
     std = float(strategy_returns.std(ddof=1))
     sharpe = float(strategy_returns.mean() / std * np.sqrt(events_per_year)) if std > 0 else 0.0
     peak = np.maximum.accumulate(equity)
-    max_drawdown = float(((peak - equity) / peak).max())
+    max_drawdown = float(np.max((peak - equity) / peak))
     changes = np.diff(positions, prepend=positions[:1])
     return {
         "backtest_total_return": float(equity[-1] - 1.0),
