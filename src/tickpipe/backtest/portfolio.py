@@ -105,7 +105,7 @@ class Portfolio:
         sharpe = float(returns.mean() / std * np.sqrt(events_per_year)) if std > 0 else 0.0
         peak = np.maximum.accumulate(equities)
         drawdown = (peak - equities) / np.where(peak != 0, peak, 1.0)
-        max_drawdown = float(drawdown.max())
+        max_drawdown = float(np.max(drawdown))
         return {
             "total_return": total_return,
             "sharpe": sharpe,
